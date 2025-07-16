@@ -56,7 +56,15 @@ def main():
     plt.ylabel('Frequência')
     plt.savefig('plots/' + 'dist_anomal.png')
 
+    contagem_contaminantes = X['grupo_de_parametros'].value_counts()
+    labels = [f"{idx} (n={v})" for idx, v in contagem_contaminantes.items()]
 
-
+    plt.figure(figsize=(6, 4))
+    plt.pie(contagem_contaminantes, labels=labels)
+    plt.title('Distribuição de Parametros Observados')
+    plt.savefig('plots/' + 'contaminantes.png')
+    
+    anomalias = y[['codanomal', 'tpnascassi']].value_counts()
+    print(anomalias)
 if __name__ == "__main__":
     main()
