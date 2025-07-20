@@ -2,3 +2,6 @@ pandas
 requests
 numpy
 matplotlib
+scikit-learn
+imblearn
+seaborn
