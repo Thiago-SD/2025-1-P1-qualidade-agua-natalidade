@@ -5,4 +5,5 @@ matplotlib
 scikit-learn
 imblearn
 seaborn
-kneed 
+kneed
+umap-learn
