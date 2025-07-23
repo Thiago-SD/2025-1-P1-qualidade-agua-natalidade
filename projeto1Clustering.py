@@ -65,7 +65,6 @@ def plot_oritinal_distributions(data, plot_dir=None):
         plt.savefig('plots/' + 'stats_original_data.png')
 
 def preprocessor_func(data, indexes=None, categorical_columns=None):
-    
     if indexes is not None:
         cluster_data = data[indexes].copy()
     else:
@@ -82,10 +81,7 @@ def preprocessor_func(data, indexes=None, categorical_columns=None):
 
     return cluster_data_scaled
 
-def dim_reduction(data, plot_dir = None):
-    pca = PCA()
-    pca.fit_transform(data)
-
+def plot_pca_variance_cumsum(pca, plot_dir = None):
     plt.figure(figsize=(8, 6))
     plt.plot([i for i in range(1, pca.n_components_ + 1)], np.cumsum(pca.explained_variance_ratio_))
     plt.xlabel('Número de Componentes Principais')
@@ -101,11 +97,7 @@ def dim_reduction(data, plot_dir = None):
     else:
         plt.savefig('plots/' + 'cumsum_func.png')
 
-    pca = PCA(n_components=0.9)
-    return pca.fit_transform(data)
-
 def k_optimizer(data, max_k=20, plot_dir=None):
-
     inertias = []
     k_range = range(1, max_k)
 
@@ -135,7 +127,6 @@ def k_optimizer(data, max_k=20, plot_dir=None):
     return optimal_k
 
 def plot_clustering_results(data, plot_dir=None):
-
     cluster_counts_kmeans = pd.DataFrame(data['cluster_kmeans'].value_counts())
     cluster_counts_dbscan = pd.DataFrame(data['cluster_dbscan'].value_counts())
 
@@ -161,39 +152,34 @@ def plot_clustering_results(data, plot_dir=None):
     else:
         plt.savefig('plots/' + 'results_clustering.png')
 
-def visualize_clusters(data, labels, title="Clusters", random_state=42, plot_dir=None):
-    # Normalização dos dados
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(data)
-    
-    plt.figure(figsize=(18, 6))
-    
-    # t-SNE
-    plt.subplot(1, 3, 1)
-    tsne = TSNE(n_components=2, random_state=random_state)
-    X_tsne = tsne.fit_transform(X_scaled)
-    plt.scatter(X_tsne[:, 0], X_tsne[:, 1], c=labels, cmap='viridis', s=10)
-    plt.title(f'{title} - t-SNE', fontsize=14)
+def visualize_clustering(values, labels, plot_dir=None):
+
+    tsne = TSNE(random_state=42, verbose=1, max_iter=2000, n_components=2)
+    tsne_data = tsne.fit_transform(values)
+
+    pca = PCA(n_components=2)
+    pca_data = pca.fit_transform(values)
+
+    plt.figure(figsize=(10, 8))
+
+    plt.subplot(2, 1, 1)
+    plt.scatter(x=pca_data[:, 0], y=pca_data[:, 1], c=labels, cmap='viridis')
+    plt.title("PCA Clusters")
+    plt.xlabel("Componente 1")
+    plt.ylabel("Componente 2")
     plt.colorbar()
-    
-    # UMAP
-    plt.subplot(1, 3, 2)
-    reducer = umap.UMAP(random_state=random_state)
-    X_umap = reducer.fit_transform(X_scaled)
-    plt.scatter(X_umap[:, 0], X_umap[:, 1], c=labels, cmap='viridis', s=10)
-    plt.title(f'{title} - UMAP', fontsize=14)
+    plt.grid(True)
+
+    plt.subplot(2, 1, 2)
+    plt.scatter(x=tsne_data[:, 0], y=tsne_data[:, 1], c=labels, cmap='viridis')
+    plt.title("TSNE Clusters")
+    plt.xlabel("Dimensão 1")
+    plt.ylabel("Dimensão 2")
     plt.colorbar()
-    
-    # Distribuição dos clusters
-    plt.subplot(1, 3, 3)
-    unique, counts = np.unique(labels, return_counts=True)
-    plt.bar(unique, counts)
-    plt.title('Distribuição dos Clusters', fontsize=14)
-    plt.xlabel('Cluster')
-    plt.ylabel('Número de pontos')
-    
+    plt.grid(True)
+
     plt.tight_layout()
-    plt.tight_layout()
+
     if plot_dir is not None:
         plt.savefig(plot_dir + 'cluster_analysys.png')
     else:
@@ -221,44 +207,48 @@ def main():
 
     plot_oritinal_distributions(merged_df)
    
-    features_index = ['ld', 'lq', 'resultado', 'grupo_de_parametros','parametro', 'idademae', 'gravidez', 'gestacao', 'consprenat', 'mesprenat', 'tpnascassi']
+    features_index = ['ld', 'lq', 'resultado', 'grupo_de_parametros','parametro']
     target_index = ['codanomal', 'idanomal']
+    #target_index = ['codanomal']
+    #target_index = ['idanomal']
 
-    categorical_cols = ['grupo_de_parametros', 'parametro', 'gravidez', 'gestacao', 'tpnascassi', 'codanomal', 'idanomal']
+    categorical_cols = ['grupo_de_parametros', 'parametro'] + target_index
     
     print(f">>>Realizando pré-processamento dos dados com as colunas: {features_index + target_index}<<<")
 
     preprocessed_data = preprocessor_func(merged_df, features_index + target_index, categorical_columns=categorical_cols)
 
-    reduced_data = dim_reduction(preprocessed_data)
+    pca = PCA()
+    pca.fit_transform(preprocessed_data)
+
+    plot_pca_variance_cumsum(pca)
+
+    pca = PCA(n_components=0.9)
+    dim_reduced_data = pca.fit_transform(preprocessed_data)
 
     print(">>>Calculando k ótimo<<<")
 
-    optimal_k = 125#k_optimizer(reduced_data, max_k=200)
+    optimal_k_pca = k_optimizer(dim_reduced_data, max_k=200)
 
     print(">>>Realizando agrupamento via Kmeans<<<")
 
-    kmeans = KMeans(n_clusters=optimal_k, random_state=42)
-    clusters_kmeans = kmeans.fit_predict(reduced_data)
+    kmeans = KMeans(n_clusters=optimal_k_pca, random_state=42)
+    merged_df['cluster_kmeans'] = kmeans.fit_predict(dim_reduced_data)
 
     print(">>>Realizando agrupamento via DBSCAN<<<")
 
-    dbscan = DBSCAN(eps=10, min_samples=41)
-    clusters_dbscan = dbscan.fit_predict(reduced_data)
+    dbscan = DBSCAN(eps=5, min_samples=39)
+    merged_df['cluster_dbscan'] = dbscan.fit_predict(dim_reduced_data)
 
     print(">>>Gerando resultados do agrupamento<<<")
-    
-    visualize_clusters(reduced_data, clusters_kmeans , title="Kmeans Clusters")
-    visualize_clusters(reduced_data, clusters_dbscan , title="DBSCAN Clusters")
 
-    merged_df['cluster_kmeans'] = clusters_kmeans
-    merged_df['cluster_dbscan'] = clusters_dbscan
+    visualize_clustering(preprocessed_data, merged_df['cluster_kmeans'])
 
-    nascimentos_anomalia = merged_df.dropna(subset=['codanomal'])
+    nascimentos_anomalia = merged_df.dropna(subset=['idanomal'])
 
     plot_clustering_results(nascimentos_anomalia)
 
-    print(f">>>Resultados do agrupamento impressos em {plot_folder}/")
+    print(f">>>Resultados do agrupamento impressos em {plot_folder}/<<<")
 
     
 if __name__ == "__main__":
