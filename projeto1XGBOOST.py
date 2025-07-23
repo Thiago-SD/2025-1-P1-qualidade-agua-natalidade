@@ -29,21 +29,17 @@ params_url_sisagua = {
 }
 
 def build_and_tune_xgboost(X_train, y_train):
-    """
-    Constrói uma pipeline de pré-processamento e um modelo XGBoost,
-    e ajusta os hiperparâmetros usando RandomizedSearchCV.
-    """
     num_cols = ['ld', 'lq', 'resultado', 'idademae', 'gravidez', 'gestacao', 'consprenat', 'mesprenat', 'tpnascassi']
     cat_cols = ['parametro', 'grupo_de_parametros']
     
     numeric_transformer = Pipeline([
-        ('imputer', SimpleImputer(strategy='median')),
-        ('scaler', StandardScaler())
+        ('imp', SimpleImputer(strategy='median')),
+        ('scale', StandardScaler())
     ])
     
     categorical_transformer = Pipeline([
-        ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
-        ('onehot', OneHotEncoder(handle_unknown='ignore', sparse_output=False))
+        ('imp', SimpleImputer(strategy='constant', fill_value='missing')),
+        ('enc', OneHotEncoder(handle_unknown='ignore', sparse_output=False))
     ])
     
     preprocessor = ColumnTransformer([
@@ -114,8 +110,8 @@ def build_and_tune_xgboost_multiclass(X_train, y_train):
     num_cols = ['ld', 'lq', 'resultado', 'idademae', 'gravidez', 'gestacao', 'consprenat', 'mesprenat', 'tpnascassi']
     cat_cols = ['parametro', 'grupo_de_parametros']
     
-    numeric_transformer = Pipeline([('imputer', SimpleImputer(strategy='median')), ('scaler', StandardScaler())])
-    categorical_transformer = Pipeline([('imputer', SimpleImputer(strategy='constant', fill_value='missing')), ('onehot', OneHotEncoder(handle_unknown='ignore', sparse_output=False))])
+    numeric_transformer = Pipeline([('imp', SimpleImputer(strategy='median')), ('scaler', StandardScaler())])
+    categorical_transformer = Pipeline([('imp', SimpleImputer(strategy='constant', fill_value='missing')), ('enc', OneHotEncoder(handle_unknown='ignore', sparse_output=False))])
     preprocessor = ColumnTransformer([('num', numeric_transformer, num_cols), ('cat', categorical_transformer, cat_cols)])
 
     # Codificar rótulos e calcular pesos de amostra
@@ -164,7 +160,7 @@ def main():
     df_sisagua = pd.DataFrame(response_sisagua.json()["parametros"])
     
     
-    merged_df = pd.merge(df_sinasc, df_sisagua, left_on='codmunres', right_on='codigo_ibge', how='left')
+    merged_df = pd.merge(df_sinasc, df_sisagua, left_on='codmunnatu', right_on='codigo_ibge', how='left')
     
     merged_df['idanomal'] = pd.to_numeric(merged_df['idanomal'], errors='coerce').fillna(0).astype(int)
     # Filtra os casos com informação válida sobre anomalias
@@ -183,6 +179,9 @@ def main():
         X, y, test_size=0.25, stratify=y, random_state=42
     )
     binary_model_xgb = build_and_tune_xgboost(X_train, y_train)
+
+
+
     
     # Avalia o modelo final no treino e teste
     print("\n--- Avaliação do Modelo XGBoost Final ---")
