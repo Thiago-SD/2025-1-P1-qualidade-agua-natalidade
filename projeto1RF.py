@@ -1,6 +1,7 @@
 import requests
 import pandas as pd
 import matplotlib.pyplot as plt
+import seaborn as sns
 import os
 import numpy as np
 from sklearn.model_selection import train_test_split
@@ -8,6 +9,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import ConfusionMatrixDisplay
 from sklearn.metrics import classification_report, roc_auc_score, confusion_matrix
 from imblearn.over_sampling import SMOTE
 from imblearn.pipeline import Pipeline as ImbPipeline
@@ -28,9 +30,9 @@ params_url_sisagua = {
 }
 
 def main():
-    plot_folder = 'plots'
-    if not os.path.isdir(plot_folder):
-        os.makedirs(plot_folder)
+    plot_dir = 'plots'
+    if not os.path.isdir(plot_dir):
+        os.makedirs(plot_dir)
 
     response_sinasc = requests.get(url_sinasc, params=params_url_sinasc)
     response_sisagua = requests.get(url_sisagua, params=params_url_sisagua)
@@ -169,6 +171,19 @@ def main():
     
     print("Matriz de Confusão:")
     print(cm_df)
+
+    plt.figure(figsize=(10, 6))
+    sns.heatmap(cm_df, annot=True)
+
+    plt.title('Mapa de Calor da Matriz de Confusão')
+    plt.xlabel('Código Predito')
+    plt.ylabel('Código Real')
+    plt.tight_layout()
+
+    if plot_dir is not None:
+        plt.savefig(plot_dir + '/' + 'conf_matrix.png')
+    else:
+        plt.savefig('plots/' + 'conf_matrix.png')
 
 if __name__ == "__main__":
     main()

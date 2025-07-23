@@ -123,7 +123,7 @@ def main():
     df_sinasc = pd.DataFrame(response_sinasc.json()['sinasc'])
     df_sisagua = pd.DataFrame(response_sisagua.json()["parametros"])
 
-    merged_df = pd.merge(df_sinasc, df_sisagua, left_on='codmunnatu', right_on='codigo_ibge', how='left')
+    merged_df = pd.merge(df_sinasc, df_sisagua, left_on='codmunres', right_on='codigo_ibge', how='left')
     merged_df['idanomal'] = pd.to_numeric(merged_df['idanomal'], errors='coerce').fillna(0).astype(int)
     #Filtra os casos em que não foi registrada se havia ou não anomalia
     merged_df = merged_df[merged_df['idanomal'].isin([1, 2])].copy()

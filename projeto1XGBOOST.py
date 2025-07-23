@@ -164,7 +164,7 @@ def main():
     df_sisagua = pd.DataFrame(response_sisagua.json()["parametros"])
     
     
-    merged_df = pd.merge(df_sinasc, df_sisagua, left_on='codmunnatu', right_on='codigo_ibge', how='left')
+    merged_df = pd.merge(df_sinasc, df_sisagua, left_on='codmunres', right_on='codigo_ibge', how='left')
     
     merged_df['idanomal'] = pd.to_numeric(merged_df['idanomal'], errors='coerce').fillna(0).astype(int)
     # Filtra os casos com informação válida sobre anomalias

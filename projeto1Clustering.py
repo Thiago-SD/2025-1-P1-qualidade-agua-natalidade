@@ -16,12 +16,12 @@ url_sinasc = "https://apidadosabertos.saude.gov.br/vigilancia-e-meio-ambiente/si
 url_sisagua = "https://apidadosabertos.saude.gov.br/sisagua/controle-semestral"
 
 params_url_sinasc = {
-    "limit": 10000,
+    "limit": 30000,
     "offset": 0
 }
 
 params_url_sisagua = {
-    "limit": 10000,
+    "limit": 30000,
     "offset": 0,
     "semestre_de_referencia": 1
 }
@@ -126,32 +126,6 @@ def k_optimizer(data, max_k=20, plot_dir=None):
 
     return optimal_k
 
-def plot_clustering_results(data, plot_dir=None):
-    cluster_counts_kmeans = pd.DataFrame(data['cluster_kmeans'].value_counts())
-    cluster_counts_dbscan = pd.DataFrame(data['cluster_dbscan'].value_counts())
-
-    plt.figure(figsize=(16, 12))
-
-    plt.subplot(2, 1, 1)
-    sns.barplot(data=cluster_counts_kmeans, x='cluster_kmeans', y='count')
-    plt.title('Resultados do Agrupamento(Kmeans)')
-    plt.xlabel('Cluster')
-    plt.ylabel('Contagem')
-    plt.xticks(rotation=45)
-
-    plt.subplot(2, 1, 2)
-    sns.barplot(data=cluster_counts_dbscan, x='cluster_dbscan', y='count')
-    plt.title('Resultados do Agrupamento(DBSCAN)')
-    plt.xlabel('Cluster')
-    plt.ylabel('Contagem')
-    plt.xticks(rotation=45)
-
-
-    if plot_dir is not None:
-        plt.savefig(plot_dir + 'results_clustering.png')
-    else:
-        plt.savefig('plots/' + 'results_clustering.png')
-
 def visualize_clustering(values, labels, plot_dir=None):
 
     tsne = TSNE(random_state=42, verbose=1, max_iter=2000, n_components=2)
@@ -160,23 +134,32 @@ def visualize_clustering(values, labels, plot_dir=None):
     pca = PCA(n_components=2)
     pca_data = pca.fit_transform(values)
 
-    plt.figure(figsize=(10, 8))
+    umap_data = umap.UMAP(random_state=42).fit_transform(values)
 
-    plt.subplot(2, 1, 1)
+    plt.figure(figsize=(15, 5))
+
+    plt.subplot(1, 3, 1)
     plt.scatter(x=pca_data[:, 0], y=pca_data[:, 1], c=labels, cmap='viridis')
-    plt.title("PCA Clusters")
+    plt.title("PCA Reduction")
     plt.xlabel("Componente 1")
     plt.ylabel("Componente 2")
     plt.colorbar()
     plt.grid(True)
 
-    plt.subplot(2, 1, 2)
+    plt.subplot(1, 3, 2)
     plt.scatter(x=tsne_data[:, 0], y=tsne_data[:, 1], c=labels, cmap='viridis')
-    plt.title("TSNE Clusters")
+    plt.title("TSNE Reduction")
     plt.xlabel("Dimensão 1")
     plt.ylabel("Dimensão 2")
     plt.colorbar()
     plt.grid(True)
+
+    plt.subplot(1, 3, 3)
+    plt.scatter(x=umap_data[:, 0], y=umap_data[:, 1], c=labels, cmap='viridis')
+    plt.title("UMAP Reduction")
+    plt.xlabel("Dimensão 1")
+    plt.ylabel("Dimensão 2")
+    plt.colorbar()
 
     plt.tight_layout()
 
@@ -187,9 +170,9 @@ def visualize_clustering(values, labels, plot_dir=None):
 
 def main():
 
-    plot_folder = 'plots'
-    if not os.path.isdir(plot_folder):
-        os.makedirs(plot_folder)
+    plot_dir = 'plots'
+    if not os.path.isdir(plot_dir):
+        os.makedirs(plot_dir)
 
     print(">>>Coletado dados da API<<<")
 
@@ -201,15 +184,15 @@ def main():
 
     print(">>>Realizando merge dos dois dataframes<<<")
 
-    merged_df = pd.merge(df_sinasc, df_sisagua, left_on='codmunnatu', right_on='codigo_ibge', how='left')
+    merged_df = pd.merge(df_sinasc, df_sisagua, left_on='codmunres', right_on='codigo_ibge', how='left')
 
-    print(f">>>Imprimindo gráficos referentes aos dados originais em {plot_folder}/<<<")
+    print(f">>>Imprimindo gráficos referentes aos dados originais em {plot_dir}/<<<")
 
     plot_oritinal_distributions(merged_df)
    
     features_index = ['ld', 'lq', 'resultado', 'grupo_de_parametros','parametro']
-    target_index = ['codanomal', 'idanomal']
-    #target_index = ['codanomal']
+    #target_index = ['codanomal', 'idanomal']
+    target_index = ['codanomal']
     #target_index = ['idanomal']
 
     categorical_cols = ['grupo_de_parametros', 'parametro'] + target_index
@@ -244,11 +227,7 @@ def main():
 
     visualize_clustering(preprocessed_data, merged_df['cluster_kmeans'])
 
-    nascimentos_anomalia = merged_df.dropna(subset=['idanomal'])
-
-    plot_clustering_results(nascimentos_anomalia)
-
-    print(f">>>Resultados do agrupamento impressos em {plot_folder}/<<<")
+    print(f">>>Resultados do agrupamento impressos em {plot_dir}/<<<")
 
     
 if __name__ == "__main__":
