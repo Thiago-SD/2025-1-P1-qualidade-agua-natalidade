@@ -66,6 +66,7 @@ Os resultados do processo de classificação são impressos no terminal de execu
 
 ## Link para o Vídeo:
 
+https://www.youtube.com/watch?v=L_6gSRgAJeU
 
 
 
